@@ -1,0 +1,16 @@
+{{ block title }}Your Choice{{ endblock }}
+{{ block content }}
+
+    <p>
+    You are Participant B. Participant A has 10 CU. They can send you 10 CU, 5 CU, or nothing.
+    You can make a promise to Participant A stating how much would you would be willing to return if Participant A sends you 5 or 10 CU.
+    </p>
+
+    {{ formfields }}
+    <p>
+    {{ next_button }}
+    </p>
+
+    {{ include C.INSTRUCTIONS_TEMPLATE }}
+
+{{ endblock }}
