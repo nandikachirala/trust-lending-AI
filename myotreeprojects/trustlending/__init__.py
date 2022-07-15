@@ -91,7 +91,7 @@ class Group(BaseGroup):
     # new fake data
     row = [promise5, promise5, 5, made5, made10]
     # make a prediction
-    predictFive = modelFive.predict([row])
+    predictFive = float(modelFive.predict([row]))
     # summarize prediction
     #print('Predicted: %.3f' % predictFive)
     #print(modelFive.coef_)
@@ -123,7 +123,7 @@ class Group(BaseGroup):
     # new fake data
     row = [promise5, promise10, 10, made5, made10]
     # make a prediction
-    predictTen = modelTen.predict([row])
+    predictTen = float(modelTen.predict([row]))
     # summarize prediction
     #print('Predicted: %.3f' % predictTen)
     #print(modelTen.coef_)
