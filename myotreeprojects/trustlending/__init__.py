@@ -1,6 +1,9 @@
 from otree.api import *
+from .predict import *
+
 import numpy as np
 import pandas as pd
+from pytest import console_main
 import seaborn as sns
 from matplotlib import pyplot
 import sklearn
@@ -19,6 +22,8 @@ from sklearn.preprocessing import \
 
 import warnings
 warnings.filterwarnings('ignore')
+
+# __table_args__ = {'extend_existing': True}
 
 doc = """
 This is a standard 2-player trust game where the amount sent by player 1 gets
@@ -45,98 +50,11 @@ class Subsession(BaseSubsession):
 
 
 class Group(BaseGroup):
-    promise5 = models.CurrencyField(doc="""Amount promised to send in exchange for 5""", min=cu(0))
-    promise10 = models.CurrencyField(doc="""Amount promised to send in exchange for 10""", min=cu(0))
+    promise5 = models.FloatField(doc="Promise if sent 5", initial=0)
+    promise10 = models.FloatField(doc="Promise if sent 10", initial=0)
     
-    # load data into df
-    url = "https://raw.githubusercontent.com/nandikachirala/trust-lending-AI/main/ArtificialData-For-Algorithm.csv"
-    dataset = pd.read_csv(url)
-
-    # forming two models
-    datasetFive = dataset.loc[dataset['AmountSent'] == 5]
-    datasetTen = dataset.loc[dataset['AmountSent'] == 10]
-    dataFive = datasetFive.values
-    dataTen = datasetTen.values
-
-    if(promise5 != 0):
-        made5 = 1
-    else:
-        made5 = 0
-    if(promise10 != 0):
-        made10 = 1
-    else:
-        made10 = 0
-
-    # Model for 5
-
-    Xfive, yfive = dataFive[:, :-1], dataFive[:, -1]
-    model = Lasso(alpha=1.0)
-    # define model evaluation method
-    cvFive = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
-    # evaluate model
-    scores = cross_val_score(model, Xfive, yfive, scoring='r2', cv=cvFive, n_jobs=-1)
-    # force scores to be positive
-    scores = np.absolute(scores)
-    #print('Mean Absolute Error: %.3f (%.3f)' % (np.mean(scores), np.std(scores)))
-
-    # tune alpha for 5
-    modelFive = LassoCV(alphas=np.arange(0, 1, 0.01), cv=cvFive, n_jobs=-1)
-    modelFive.fit(Xfive, yfive)
-    #print('alpha: %f' % modelFive.alpha_)
-
-    # predict using tuned alpha
-    modelFive = Lasso(alpha=0.18)
-    # fit model
-    modelFive.fit(Xfive, yfive)
-    # new fake data
-    row = [promise5, promise5, 5, made5, made10]
-    # make a prediction
-    predictFive = float(modelFive.predict([row]))
-    # summarize prediction
-    #print('Predicted: %.3f' % predictFive)
-    #print(modelFive.coef_)
-    #print(modelFive.intercept_)
-
-    # Model for 10
-
-    Xten, yten = dataTen[:, :-1], dataTen[:, -1]
-
-    modelTen = Lasso(alpha=1.0)
-    # define model evaluation method
-    cvTen = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
-    # evaluate model
-    scores = cross_val_score(modelTen, Xten, yten, scoring='r2', cv=cvTen, n_jobs=-1)
-    # force scores to be positive
-    scores = np.absolute(scores)
-    #print('Mean Absolute Error: %.3f (%.3f)' % (np.mean(scores), np.std(scores)))
-
-    # tune alpha for 10
-    from sklearn.linear_model import LassoCV
-    modelTen = LassoCV(alphas=np.arange(0, 1, 0.01), cv=cvTen, n_jobs=-1)
-    modelTen.fit(Xten, yten)
-    #print('alpha: %f' % modelTen.alpha_)
-
-    # predict using tuned alpha
-    modelTen = Lasso(alpha=0.03)
-    # fit model
-    modelTen.fit(Xten, yten)
-    # new fake data
-    row = [promise5, promise10, 10, made5, made10]
-    # make a prediction
-    predictTen = float(modelTen.predict([row]))
-    # summarize prediction
-    #print('Predicted: %.3f' % predictTen)
-    #print(modelTen.coef_)
-    #print(modelTen.intercept_)
-
-    # Choosing send amount
-    predictFive = float(predictFive) + 5
-    predictTen = float(predictTen)
-    outcomeMap = {10:0, predictFive:5, predictTen:10}
-    bestDecision = max(10, predictFive, predictTen)
-    #print(bestDecision)
-    #TODO: add chosen decision row into file and re-evaluate
-    sent_amount = outcomeMap[bestDecision]
+    #sent_amount = models.FloatField()
+    #sent_amount = models.FloatField(initial=float(bestDecision(promise5, promise10)))
 
     sent_back_amount = models.CurrencyField(doc="""Amount sent back by P""", min=cu(0))
 
@@ -147,13 +65,24 @@ class Player(BasePlayer):
 
 # FUNCTIONS
 
-def sent_back_amount_max(group: Group):
-    return group.sent_amount * C.MULTIPLIER
+def sendPromise5(group: Group):
+    return group.promise5
+
+def sendPromise10(group: Group):
+    return group.promise10
+
+def set_sent_amount(group: Group):
+    sent_amount = bestDecision(group.promise5, group.promise10)
+    return sent_amount
+
+# def sent_back_amount_max(group: Group, sent_amount):
+#     return sent_amount * C.MULTIPLIER
 
 
 def set_payoffs(group: Group):
+    sent_amount = set_sent_amount(group)
     p = group.get_player_by_id(1)
-    p.payoff = group.sent_amount * C.MULTIPLIER - group.sent_back_amount
+    p.payoff = sent_amount * C.MULTIPLIER - group.sent_back_amount
 
 
 # PAGES
@@ -192,9 +121,10 @@ class SendBack(Page):
     @staticmethod
     def vars_for_template(player: Player):
         group = player.group
+        sent_amount = set_sent_amount(group)
 
-        tripled_amount = group.sent_amount * C.MULTIPLIER
-        return dict(tripled_amount=tripled_amount)
+        tripled_amount = sent_amount * C.MULTIPLIER
+        return dict(tripled_amount=tripled_amount, sent_amount=sent_amount)
 
 
 class ResultsWaitPage(WaitPage):
@@ -207,8 +137,8 @@ class Results(Page):
     @staticmethod
     def vars_for_template(player: Player):
         group = player.group
-
-        return dict(tripled_amount=group.sent_amount * C.MULTIPLIER)
+        sent_amount = set_sent_amount(group)
+        return dict(tripled_amount=sent_amount * C.MULTIPLIER, sent_amount=sent_amount)
 
 
 page_sequence = [

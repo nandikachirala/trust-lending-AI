@@ -12,7 +12,7 @@ SESSION_CONFIGS = [
         name='trust', 
         display_name="Trust", 
         app_sequence=['trust', 'payment_info'], 
-        num_demo_participants=1
+        num_demo_participants=2
     )
 ]
 
