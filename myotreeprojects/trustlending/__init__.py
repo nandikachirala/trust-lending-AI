@@ -1,25 +1,6 @@
 from otree.api import *
 from .predict import *
 
-import numpy as np
-import pandas as pd
-from pytest import console_main
-import seaborn as sns
-from matplotlib import pyplot
-import sklearn
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_validate
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Lasso
-from sklearn.linear_model import LassoCV
-from sklearn.metrics import \
-    r2_score, get_scorer
-from sklearn.preprocessing import \
-    StandardScaler, PolynomialFeatures
-
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -65,12 +46,6 @@ class Player(BasePlayer):
 
 # FUNCTIONS
 
-def sendPromise5(group: Group):
-    return group.promise5
-
-def sendPromise10(group: Group):
-    return group.promise10
-
 def set_sent_amount(group: Group):
     sent_amount = bestDecision(group.promise5, group.promise10)
     return sent_amount
@@ -83,6 +58,9 @@ def set_payoffs(group: Group):
     sent_amount = set_sent_amount(group)
     p = group.get_player_by_id(1)
     p.payoff = sent_amount * C.MULTIPLIER - group.sent_back_amount
+
+def update_results(group: Group):
+    update_results_csv(group.promise5, group.promise10, set_sent_amount(group), group.sent_back_amount)
 
 
 # PAGES
@@ -138,6 +116,7 @@ class Results(Page):
     def vars_for_template(player: Player):
         group = player.group
         sent_amount = set_sent_amount(group)
+        update_results(group)
         return dict(tripled_amount=sent_amount * C.MULTIPLIER, sent_amount=sent_amount)
 
 

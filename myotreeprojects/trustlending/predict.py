@@ -3,18 +3,9 @@ from otree.api import *
 
 import numpy as np
 import pandas as pd
-from pytest import console_main
-import seaborn as sns
-from matplotlib import pyplot
 import sklearn
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_validate
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Lasso
-from sklearn.linear_model import LassoCV
 from sklearn.metrics import \
     r2_score, get_scorer
 from sklearn.preprocessing import \
@@ -23,8 +14,10 @@ from sklearn.preprocessing import \
 import warnings
 warnings.filterwarnings('ignore')
 
+url = "https://raw.githubusercontent.com/nandikachirala/trust-lending-AI/main/ArtificialData-For-Algorithm.csv"
+
 def bestDecision(promise5, promise10):
-    url = "https://raw.githubusercontent.com/nandikachirala/trust-lending-AI/main/ArtificialData-For-Algorithm.csv"
+    
     dataset = pd.read_csv(url)
 
     # summarize shape + first few lines
@@ -42,14 +35,14 @@ def bestDecision(promise5, promise10):
 
     Xfive, yfive = dataFive[:, :-1], dataFive[:, -1]
 
-    model = Lasso(alpha=1.0)
+    #model = Lasso(alpha=1.0)
     # define model evaluation method
     cvFive = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
     # evaluate model
-    scores = cross_val_score(model, Xfive, yfive, scoring='r2', cv=cvFive, n_jobs=-1)
+    #scores = cross_val_score(model, Xfive, yfive, scoring='r2', cv=cvFive, n_jobs=-1)
     # force scores to be positive
-    scores = np.absolute(scores)
-    print('Mean Absolute Error: %.3f (%.3f)' % (np.mean(scores), np.std(scores)))
+    #scores = np.absolute(scores)
+    #print('Mean Absolute Error: %.3f (%.3f)' % (np.mean(scores), np.std(scores)))
 
     # tune alpha for 5
     from sklearn.linear_model import LassoCV
@@ -75,14 +68,14 @@ def bestDecision(promise5, promise10):
 
     Xten, yten = dataTen[:, :-1], dataTen[:, -1]
 
-    modelTen = Lasso(alpha=1.0)
+    #modelTen = Lasso(alpha=1.0)
     # define model evaluation method
     cvTen = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
     # evaluate model
-    scores = cross_val_score(modelTen, Xten, yten, scoring='r2', cv=cvTen, n_jobs=-1)
+    #scores = cross_val_score(modelTen, Xten, yten, scoring='r2', cv=cvTen, n_jobs=-1)
     # force scores to be positive
-    scores = np.absolute(scores)
-    print('Mean Absolute Error: %.3f (%.3f)' % (np.mean(scores), np.std(scores)))
+    #scores = np.absolute(scores)
+    #print('Mean Absolute Error: %.3f (%.3f)' % (np.mean(scores), np.std(scores)))
 
     # tune alpha for 10
     from sklearn.linear_model import LassoCV
@@ -112,3 +105,19 @@ def bestDecision(promise5, promise10):
     print(bestDecision)
     print(outcomeMap[bestDecision])
     return float(outcomeMap[bestDecision])
+
+
+def update_results_csv(promise5, promise10, amount_sent, amount_returned):
+    madeFive = 0
+    if promise5 != 0:
+        madeFive = 1
+    madeTen = 0
+    if promise10 != 0:
+        madeTen = 1
+
+    amount_returned = int(amount_returned)
+
+    df = pd.DataFrame([promise5, promise10, amount_sent, madeFive, madeTen, amount_returned])
+
+    df.to_csv(url, mode='a', index=False, header=False)
+
